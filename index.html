@@ -2,436 +2,220 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Рекомендации университетов</title>
-    <!-- Telegram Web App SDK -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Подбор университетов</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
-            /* Fallbacks in case Telegram vars are not loaded (e.g., local testing) */
-            --tg-bg: #ffffff;
-            --tg-text: #000000;
-            --tg-hint: #999999;
-            --tg-link: #2481cc;
-            --tg-button: #2481cc;
-            --tg-button-text: #ffffff;
-            --tg-secondary-bg: #f0f0f0;
+            --bg-color: #ffffff;
+            --text-color: #000000;
+            --card-bg: #f0f2f5;
+            --accent-color: #2AABEE;
+            --green: #4caf50;
+            --orange: #ff9800;
+            --red: #f44336;
         }
-
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #17212B;
+                --text-color: #ffffff;
+                --card-bg: #232e3c;
+                --accent-color: #2AABEE;
+            }
+        }
         * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
         }
-
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--tg-theme-bg-color, var(--tg-bg));
-            color: var(--tg-theme-text-color, var(--tg-text));
+            background-color: var(--bg-color);
+            color: var(--text-color);
             padding: 16px;
-            padding-bottom: 60px; /* Space for native back button if used */
-            transition: background-color 0.2s ease;
+            transition: all 0.3s ease;
         }
-
-        /* Views Management */
-        .view {
-            display: none;
-            flex-direction: column;
-            gap: 16px;
-            animation: fadeIn 0.3s ease;
+        h1 {
+            font-size: 22px;
+            margin-bottom: 8px;
+            text-align: center;
         }
-        .view.active {
+        .subtitle {
+            font-size: 14px;
+            color: gray;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .loader {
             display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 50vh;
+            font-size: 18px;
+            color: var(--accent-color);
         }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* User Profile Summary */
-        .profile-card {
-            background-color: var(--tg-theme-secondary-bg-color, var(--tg-secondary-bg));
+        .card {
+            background-color: var(--card-bg);
             border-radius: 12px;
             padding: 16px;
-            margin-bottom: 8px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: transform 0.1s;
         }
-        .profile-title {
-            font-size: 14px;
-            color: var(--tg-theme-hint-color, var(--tg-hint));
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .profile-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        .tag {
-            background-color: var(--tg-theme-button-color, var(--tg-button));
-            color: var(--tg-theme-button-text-color, var(--tg-button-text));
-            padding: 4px 10px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        /* University List Cards */
-        .section-title {
-            font-size: 18px;
-            font-weight: 700;
-            margin-top: 10px;
-        }
-
-        .uni-card {
-            background-color: var(--tg-theme-secondary-bg-color, var(--tg-secondary-bg));
-            border-radius: 16px;
-            padding: 16px;
-            cursor: pointer;
-            transition: transform 0.1s ease;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .uni-card:active {
+        .card:active {
             transform: scale(0.98);
         }
-        .uni-header {
+        .card-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
+            margin-bottom: 8px;
         }
         .uni-name {
-            font-size: 16px;
+            font-size: 18px;
             font-weight: 600;
             flex: 1;
-            padding-right: 8px;
+            margin-right: 8px;
         }
-        .uni-tag {
+        .chance-badge {
             font-size: 12px;
-            color: var(--tg-theme-hint-color, var(--tg-hint));
-            background: rgba(0,0,0,0.05);
             padding: 4px 8px;
-            border-radius: 6px;
+            border-radius: 12px;
+            font-weight: bold;
             white-space: nowrap;
         }
+        .chance-high { background-color: rgba(76, 175, 80, 0.2); color: var(--green); }
+        .chance-medium { background-color: rgba(255, 152, 0, 0.2); color: var(--orange); }
+        .chance-low { background-color: rgba(244, 67, 54, 0.2); color: var(--red); }
 
-        /* Progress Bar */
-        .progress-container {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-        .progress-label {
-            display: flex;
-            justify-content: space-between;
-            font-size: 12px;
-            font-weight: 600;
-        }
-        .progress-bar {
-            height: 8px;
-            background-color: rgba(0,0,0,0.1);
-            border-radius: 4px;
-            overflow: hidden;
-        }
-        .progress-fill {
-            height: 100%;
-            background-color: var(--tg-theme-button-color, var(--tg-button));
-            border-radius: 4px;
-            transition: width 0.5s ease;
-        }
-
-        /* Detail View Elements */
-        .detail-header {
-            font-size: 22px;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-        .detail-info {
-            background-color: var(--tg-theme-secondary-bg-color, var(--tg-secondary-bg));
-            border-radius: 16px;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 15px;
-        }
-        .info-key {
-            color: var(--tg-theme-hint-color, var(--tg-hint));
-        }
-        .info-val {
-            font-weight: 600;
-            text-align: right;
-        }
-
-        /* Buttons & Links */
-        .btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            padding: 16px;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            border: none;
-            cursor: pointer;
-            text-decoration: none;
-            transition: opacity 0.2s ease;
-        }
-        .btn:active {
-            opacity: 0.8;
-        }
-        .btn-primary {
-            background-color: var(--tg-theme-button-color, var(--tg-button));
-            color: var(--tg-theme-button-text-color, var(--tg-button-text));
-        }
-        .btn-secondary {
-            background-color: var(--tg-theme-secondary-bg-color, var(--tg-secondary-bg));
-            color: var(--tg-theme-text-color, var(--tg-text));
-        }
-        .external-link {
-            color: var(--tg-theme-link-color, var(--tg-link));
-            text-decoration: none;
-            text-align: center;
-            margin-top: 8px;
+        .uni-desc {
             font-size: 14px;
-            display: block;
+            line-height: 1.4;
+            opacity: 0.9;
+            margin-bottom: 12px;
         }
-
-        /* Reviews View */
-        .review-block {
-            background-color: var(--tg-theme-secondary-bg-color, var(--tg-secondary-bg));
-            border-radius: 16px;
-            padding: 16px;
-        }
-        .review-title {
-            font-size: 16px;
-            font-weight: 700;
-            margin-bottom: 8px;
+        .uni-meta {
             display: flex;
-            align-items: center;
+            flex-wrap: wrap;
             gap: 8px;
+            font-size: 12px;
+            color: gray;
+            margin-bottom: 12px;
         }
-        .review-text {
+        .meta-item {
+            background-color: rgba(0,0,0,0.05);
+            padding: 4px 8px;
+            border-radius: 8px;
+        }
+        .explanation {
+            font-size: 13px;
+            font-style: italic;
+            padding-top: 8px;
+            border-top: 1px solid rgba(128, 128, 128, 0.2);
+        }
+        .link-btn {
+            display: block;
+            text-align: center;
+            margin-top: 12px;
+            padding: 10px;
+            background-color: var(--accent-color);
+            color: #fff;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 500;
             font-size: 14px;
-            line-height: 1.5;
         }
-        .icon-pros { color: #4caf50; }
-        .icon-cons { color: #f44336; }
     </style>
 </head>
 <body>
 
-    <!-- VIEW 1: LIST -->
-    <div id="view-list" class="view active">
-        <div class="profile-card" id="user-profile"></div>
-        <div class="section-title">Топ-5 университетов для вас</div>
-        <div id="uni-list-container"></div>
-    </div>
-
-    <!-- VIEW 2: DETAIL -->
-    <div id="view-detail" class="view">
-        <div class="detail-header" id="detail-name"></div>
-        <div class="detail-info" id="detail-info"></div>
-
-        <div class="progress-container" style="margin-top: 8px;">
-            <div class="progress-label">
-                <span>Шанс поступления</span>
-                <span id="detail-chance"></span>
-            </div>
-            <div class="progress-bar">
-                <div id="detail-progress" class="progress-fill"></div>
-            </div>
-        </div>
-
-        <button class="btn btn-primary" id="btn-show-reviews" style="margin-top: 16px;">
-            Отзывы студентов
-        </button>
-
-        <a href="https://vuzopedia.ru" target="_blank" class="external-link">
-            Открыть на Вузопедии ↗
-        </a>
-    </div>
-
-    <!-- VIEW 3: REVIEWS -->
-    <div id="view-reviews" class="view">
-        <div class="detail-header" id="reviews-uni-name"></div>
-
-        <div class="review-block">
-            <div class="review-title"><span class="icon-pros">👍</span> Плюсы</div>
-            <div id="text-pros" class="review-text"></div>
-        </div>
-
-        <div class="review-block">
-            <div class="review-title"><span class="icon-cons">👎</span> Минусы</div>
-            <div id="text-cons" class="review-text"></div>
-        </div>
-
-        <button class="btn btn-secondary" id="btn-back-to-detail" style="margin-top: 16px;">
-            Назад к информации
-        </button>
+    <div id="content">
+        <div class="loader">⏳ ИИ подбирает для вас лучшие вузы...</div>
     </div>
 
     <script>
-        // --- Telegram Initialization ---
-        Telegram.WebApp.ready();
-        Telegram.WebApp.expand();
-        const BackButton = Telegram.WebApp.BackButton;
+        // Инициализация Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
 
-        // --- API Configuration ---
-        // Replace with your actual deployed server URL. For local testing use http://127.0.0.1:8000
-        const API_URL = "https://darkroom-disparate-passover.ngrok-free.dev";
-
-        // --- URL Parameters Parsing ---
+        // Получение session_id из URL (?session_id=xxxx)
         const params = new URLSearchParams(window.location.search);
         const sessionId = params.get('session_id');
 
-        // --- Mock Data (Used as fallback if API fails) ---
-        const universities = [];
+        const SERVER_URL = "https://darkroom-disparate-passover.ngrok-free.dev"; // Твой ngrok URL
 
-        // --- DOM Elements ---
-        const viewList = document.getElementById('view-list');
-        const viewDetail = document.getElementById('view-detail');
-        const viewReviews = document.getElementById('view-reviews');
-
-        // --- Initialization ---
-        async function init() {
+        async function loadData() {
             if (!sessionId) {
-                document.getElementById('user-profile').innerHTML = "<div class='profile-title'>Ошибка: ID сессии не найден</div>";
+                document.getElementById('content').innerHTML = '<p class="subtitle">Ошибка: ID сессии не найден.</p>';
                 return;
             }
 
             try {
-                // Fetch data from FastAPI
-                const response = await fetch(`${API_URL}/api/get-session/${sessionId}`);
-                if (!response.ok) throw new Error("Session not found");
-
+                const response = await fetch(`${SERVER_URL}/api/get-session/${sessionId}`);
+                if (!response.ok) throw new Error('Session not found');
+                
                 const data = await response.json();
-
-                // Render Profile
-                const profileDiv = document.getElementById('user-profile');
-                profileDiv.innerHTML = `
-                    <div class="profile-title">Ваш суммарный балл: ${data.total_score}</div>
-                `;
-
-                // Render Universities
-                const container = document.getElementById('uni-list-container');
-                container.innerHTML = '';
-
-                data.universities.forEach(uni => {
-                    const card = document.createElement('div');
-                    card.className = 'uni-card';
-                    card.innerHTML = `
-                        <div class="uni-header">
-                            <div class="uni-name">${uni.name}</div>
-                            <div class="uni-tag">До ${uni.paid_tuition_price} ₽</div>
-                        </div>
-                        <div class="progress-container">
-                            <div class="progress-label">
-                                <span>Шанс поступления</span>
-                                <span style="color: var(--tg-theme-button-color);">${uni.admission_chance}</span>
-                            </div>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: ${uni.admission_chance};"></div>
-                            </div>
-                        </div>
-                    `;
-                    card.addEventListener('click', () => showDetail(uni));
-                    container.appendChild(card);
-                });
-
-                setupBackButton();
+                renderData(data);
             } catch (error) {
-                document.getElementById('user-profile').innerHTML = `<div class='profile-title'>Ошибка загрузки: ${error.message}</div>`;
+                document.getElementById('content').innerHTML = `<p class="subtitle">⚠️ Не удалось загрузить данные. Попробуйте перезапустить бота.</p>`;
+                console.error(error);
             }
         }
 
-        // Modify showDetail to accept the university object directly
-        let currentUni = null;
-        function showDetail(uni) {
-            currentUni = uni;
-            document.getElementById('detail-name').textContent = uni.name;
-            document.getElementById('detail-info').innerHTML = `
-                <div class="info-row">
-                    <span class="info-key">Проходной балл (прошлый год)</span>
-                    <span class="info-val">${uni.historical_scores.slice(-1)[0]}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-key">Платное обучение</span>
-                    <span class="info-val">${uni.paid_tuition_price} ₽/год</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-key">Общежитие</span>
-                    <span class="info-val">${uni.dormitory_available ? 'Есть' : 'Нет'}</span>
-                </div>
-                <div class="info-row"><span class="info-key">Описание</span></div>
-                <div style="font-size: 14px; color: var(--tg-theme-hint-color, var(--tg-hint));">${uni.description}</div>
+        function getChanceClass(chance) {
+            const c = chance.toLowerCase();
+            if (c.includes('высок')) return 'chance-high';
+            if (c.includes('сред')) return 'chance-medium';
+            return 'chance-low';
+        }
+
+        function formatPrice(price) {
+            return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + ' ₽/год';
+        }
+
+        function renderData(data) {
+            const container = document.getElementById('content');
+            
+            let html = `
+                <h1>🎓 Топ-5 университетов</h1>
+                <p class="subtitle">Направление: ${data.field} | Сумма баллов: ${data.total_score}</p>
             `;
-            document.getElementById('detail-chance').textContent = uni.admission_chance;
-            document.getElementById('detail-progress').style.width = uni.admission_chance;
 
-            switchView('detail');
-            BackButton.show();
-        }
-
-        function showReviews() {
-            if (!currentUni) return;
-            document.getElementById('reviews-uni-name').textContent = `Отзывы: ${currentUni.name}`;
-            document.getElementById('text-pros').textContent = currentUni.reviews || "Отзывов пока нет.";
-            document.getElementById('text-cons').textContent = currentUni.explanation || "Дополнительной информации нет."; // Using LLM explanation as cons for MVP
-
-            switchView('reviews');
-        }
-
-        function switchView(viewName) {
-            viewList.classList.remove('active');
-            viewDetail.classList.remove('active');
-
-
-
-
-
-
-
-
-
-
-
-            viewReviews.classList.remove('active');
-
-            if (viewName === 'list') {
-                viewList.classList.add('active');
-                BackButton.hide();
-            } else if (viewName === 'detail') {
-                viewDetail.classList.add('active');
-            } else if (viewName === 'reviews') {
-                viewReviews.classList.add('active');
+            if (!data.universities || data.universities.length === 0) {
+                html += '<p class="subtitle">К сожалению, ИИ не смог найти подходящие вузы.</p>';
+                container.innerHTML = html;
+                return;
             }
-        }
 
-        document.getElementById('btn-show-reviews').addEventListener('click', showReviews);
-        document.getElementById('btn-back-to-detail').addEventListener('click', () => switchView('detail'));
-
-        function setupBackButton() {
-            BackButton.onClick(() => {
-                if (viewReviews.classList.contains('active')) {
-                    switchView('detail');
-                } else if (viewDetail.classList.contains('active')) {
-                    switchView('list');
-                    BackButton.hide();
-                }
+            data.universities.forEach(uni => {
+                const chanceText = uni.admission_chance || 'Неизвестно';
+                const chanceClass = getChanceClass(chanceText);
+                const dorm = uni.dormitory_available ? '🏠 Общежитие есть' : '🚫 Нет общежития';
+                
+                html += `
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="uni-name">${uni.name}</div>
+                            <div class="chance-badge ${chanceClass}">${chanceText}</div>
+                        </div>
+                        <div class="uni-desc">${uni.description}</div>
+                        <div class="uni-meta">
+                            <span class="meta-item">💳 ${formatPrice(uni.paid_tuition_price)}</span>
+                            <span class="meta-item">${dorm}</span>
+                        </div>
+                        <div class="explanation">💡 ${uni.explanation}</div>
+                        <a href="${uni.vuzopedia_link}" target="_blank" class="link-btn">Подробнее на Vuzopedia</a>
+                    </div>
+                `;
             });
+
+            container.innerHTML = html;
         }
 
-        // Start App
-        init();
+        // Запуск загрузки
+        loadData();
     </script>
 </body>
 </html>
