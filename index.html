@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Рекомендации университетов</title>
+    <!-- Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            /* Fallbacks in case Telegram vars are not loaded (e.g., local testing) */
+            --tg-bg: #ffffff;
+            --tg-text: #000000;
+            --tg-hint: #999999;
+            --tg-link: #2481cc;
+            --tg-button: #2481cc;
+            --tg-button-text: #ffffff;
+            --tg-secondary-bg: #f0f0f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--tg-theme-bg-color, var(--tg-bg));
+            color: var(--tg-theme-text-color, var(--tg-text));
+            padding: 16px;
+            padding-bottom: 60px; /* Space for native back button if used */
+            transition: background-color 0.2s ease;
+        }
+
+        /* Views Management */
+        .view {
+            display: none;
+            flex-direction: column;
+            gap: 16px;
+            animation: fadeIn 0.3s ease;
+        }
+        .view.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* User Profile Summary */
+        .profile-card {
+            background-color: var(--tg-theme-secondary-bg-color, var(--tg-secondary-bg));
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 8px;
+        }
+        .profile-title {
+            font-size: 14px;
+            color: var(--tg-theme-hint-color, var(--tg-hint));
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .profile-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .tag {
+            background-color: var(--tg-theme-button-color, var(--tg-button));
+            color: var(--tg-theme-button-text-color, var(--tg-button-text));
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* University List Cards */
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-top: 10px;
+        }
+
+        .uni-card {
+            background-color: var(--tg-theme-secondary-bg-color, var(--tg-secondary-bg));
+            border-radius: 16px;
+            padding: 16px;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .uni-card:active {
+            transform: scale(0.98);
+        }
+        .uni-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .uni-name {
+            font-size: 16px;
+            font-weight: 600;
+            flex: 1;
+            padding-right: 8px;
+        }
+        .uni-tag {
+            font-size: 12px;
+            color: var(--tg-theme-hint-color, var(--tg-hint));
+            background: rgba(0,0,0,0.05);
+            padding: 4px 8px;
+            border-radius: 6px;
+            white-space: nowrap;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .progress-bar {
+            height: 8px;
+            background-color: rgba(0,0,0,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: var(--tg-theme-button-color, var(--tg-button));
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        /* Detail View Elements */
+        .detail-header {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .detail-info {
+            background-color: var(--tg-theme-secondary-bg-color, var(--tg-secondary-bg));
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 15px;
+        }
+        .info-key {
+            color: var(--tg-theme-hint-color, var(--tg-hint));
+        }
+        .info-val {
+            font-weight: 600;
+            text-align: right;
+        }
+
+        /* Buttons & Links */
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            transition: opacity 0.2s ease;
+        }
+        .btn:active {
+            opacity: 0.8;
+        }
+        .btn-primary {
+            background-color: var(--tg-theme-button-color, var(--tg-button));
+            color: var(--tg-theme-button-text-color, var(--tg-button-text));
+        }
+        .btn-secondary {
+            background-color: var(--tg-theme-secondary-bg-color, var(--tg-secondary-bg));
+            color: var(--tg-theme-text-color, var(--tg-text));
+        }
+        .external-link {
+            color: var(--tg-theme-link-color, var(--tg-link));
+            text-decoration: none;
+            text-align: center;
+            margin-top: 8px;
+            font-size: 14px;
+            display: block;
+        }
+
+        /* Reviews View */
+        .review-block {
+            background-color: var(--tg-theme-secondary-bg-color, var(--tg-secondary-bg));
+            border-radius: 16px;
+            padding: 16px;
+        }
+        .review-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .review-text {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .icon-pros { color: #4caf50; }
+        .icon-cons { color: #f44336; }
+    </style>
+</head>
+<body>
+
+    <!-- VIEW 1: LIST -->
+    <div id="view-list" class="view active">
+        <div class="profile-card" id="user-profile"></div>
+        <div class="section-title">Топ-5 университетов для вас</div>
+        <div id="uni-list-container"></div>
+    </div>
+
+    <!-- VIEW 2: DETAIL -->
+    <div id="view-detail" class="view">
+        <div class="detail-header" id="detail-name"></div>
+        <div class="detail-info" id="detail-info"></div>
+
+        <div class="progress-container" style="margin-top: 8px;">
+            <div class="progress-label">
+                <span>Шанс поступления</span>
+                <span id="detail-chance"></span>
+            </div>
+            <div class="progress-bar">
+                <div id="detail-progress" class="progress-fill"></div>
+            </div>
+        </div>
+
+        <button class="btn btn-primary" id="btn-show-reviews" style="margin-top: 16px;">
+            Отзывы студентов
+        </button>
+
+        <a href="https://vuzopedia.ru" target="_blank" class="external-link">
+            Открыть на Вузопедии ↗
+        </a>
+    </div>
+
+    <!-- VIEW 3: REVIEWS -->
+    <div id="view-reviews" class="view">
+        <div class="detail-header" id="reviews-uni-name"></div>
+
+        <div class="review-block">
+            <div class="review-title"><span class="icon-pros">👍</span> Плюсы</div>
+            <div id="text-pros" class="review-text"></div>
+        </div>
+
+        <div class="review-block">
+            <div class="review-title"><span class="icon-cons">👎</span> Минусы</div>
+            <div id="text-cons" class="review-text"></div>
+        </div>
+
+        <button class="btn btn-secondary" id="btn-back-to-detail" style="margin-top: 16px;">
+            Назад к информации
+        </button>
+    </div>
+
+    <script>
+        // --- Telegram Initialization ---
+        Telegram.WebApp.ready();
+        Telegram.WebApp.expand();
+
+        // Enable native Telegram back button handling
+        const BackButton = Telegram.WebApp.BackButton;
+
+        // --- URL Parameters Parsing ---
+        const params = new URLSearchParams(window.location.search);
+        const userData = {
+            sub1: params.get('sub1') || 'N/A',
+            score1: params.get('score1') || 'N/A',
+            sub2: params.get('sub2') || 'N/A',
+            score2: params.get('score2') || 'N/A',
+            sub3: params.get('sub3') || 'N/A',
+            score3: params.get('score3') || 'N/A',
+            field: params.get('field') || 'Любое',
+            dorm: params.get('dorm') === 'true' ? 'Нужно' : 'Не нужно',
+            tuition: params.get('tuition') || 'Любая',
+            budget: params.get('budget') ? `${params.get('budget')} руб.` : 'Не указано'
+        };
+
+        // --- Mock Data ---
+        const universities = [
+            {
+                id: 1,
+                name: "МГТУ им. Н.Э. Баумана",
+                field: "IT",
+                description: "Ведущий технический вуз страны с сильной инженерной школой.",
+                admission_chance: "85%",
+                passing_score: 270,
+                reviews: {
+                    pros: "Престижный диплом, сильное комьюнити, множество лабораторий и студенческих клубов. Отличные связи с работодателями.",
+                    cons: "Очень высокая учебная нагрузка, устаревшая система управления в некоторых кафедрах, старые общежития."
+                }
+            },
+            {
+                id: 2,
+                name: "МФТИ (Физтех)",
+                field: "IT",
+                description: "Один из лучших вузов для фундаментальной науки и IT.",
+                admission_chance: "70%",
+                passing_score: 285,
+                reviews: {
+                    pros: "Глубокая научная база, индивидуальные учебные планы, уникальная система обучения.",
+                    cons: "Сложно совмещать учебу и работу, кампус находится далеко от центра Москвы."
+                }
+            },
+            {
+                id: 3,
+                name: "ВШЭ (НИУ ВШЭ)",
+                field: "Economics",
+                description: "Лидер в области экономики, менеджмента и социальных наук.",
+                admission_chance: "60%",
+                passing_score: 260,
+                reviews: {
+                    pros: "Современный подход к образованию, много программ обмена, отличный кампус в Москве.",
+                    cons: "Высокая стоимость платного обучения, коммерциализация образования."
+                }
+            },
+            {
+                id: 4,
+                name: "ИТМО",
+                field: "IT",
+                description: "Университет, славящийся программированием и IT-инновациями.",
+                admission_chance: "75%",
+                passing_score: 265,
+                reviews: {
+                    pros: "Передовые IT-программы, современная инфраструктура, активная поддержка стартапов.",
+                    cons: "Конкуренция за бюджетные места огромная, иногда не хватает преподавателей на новые курсы."
+                }
+            },
+            {
+                id: 5,
+                name: "СПбГУ",
+                field: "Humanities",
+                description: "Старейший университет России с богатой историей и широким выбором направлений.",
+                admission_chance: "50%",
+                passing_score: 250,
+                reviews: {
+                    pros: "Историческое здание в центре СПб, высокий академический уровень, престиж диплома.",
+                    cons: "Бюрократия, некоторые факультеты находятся далеко от города (в Петергофе)."
+                }
+            }
+        ];
+
+        // --- DOM Elements ---
+        const viewList = document.getElementById('view-list');
+        const viewDetail = document.getElementById('view-detail');
+        const viewReviews = document.getElementById('view-reviews');
+
+        // --- Initialization ---
+        function init() {
+            renderProfile();
+            renderList();
+            setupBackButton();
+        }
+
+        function renderProfile() {
+            const profileDiv = document.getElementById('user-profile');
+            profileDiv.innerHTML = `
+                <div class="profile-title">Ваш профиль</div>
+                <div class="profile-tags">
+                    <div class="tag">${userData.field}</div>
+                    <div class="tag">${userData.tuition} обучение</div>
+                    <div class="tag">Общежитие: ${userData.dorm}</div>
+                    <div class="tag">Бюджет до: ${userData.budget}</div>
+                </div>
+            `;
+        }
+
+        function renderList() {
+            const container = document.getElementById('uni-list-container');
+            container.innerHTML = '';
+
+            universities.forEach(uni => {
+                const card = document.createElement('div');
+                card.className = 'uni-card';
+                card.innerHTML = `
+                    <div class="uni-header">
+                        <div class="uni-name">${uni.name}</div>
+                        <div class="uni-tag">${uni.field}</div>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span>Шанс поступления</span>
+                            <span style="color: var(--tg-theme-button-color);">${uni.admission_chance}</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${uni.admission_chance};"></div>
+                        </div>
+                    </div>
+                `;
+                card.addEventListener('click', () => showDetail(uni.id));
+                container.appendChild(card);
+            });
+        }
+
+        let currentUniId = null;
+
+        function showDetail(uniId) {
+            const uni = universities.find(u => u.id === uniId);
+            if (!uni) return;
+            currentUniId = uniId;
+
+            document.getElementById('detail-name').textContent = uni.name;
+            document.getElementById('detail-info').innerHTML = `
+                <div class="info-row">
+                    <span class="info-key">Проходной балл</span>
+                    <span class="info-val">${uni.passing_score}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-key">Направление</span>
+                    <span class="info-val">${uni.field}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-key">Описание</span>
+                </div>
+                <div style="font-size: 14px; color: var(--tg-theme-hint-color, var(--tg-hint));">${uni.description}</div>
+            `;
+            document.getElementById('detail-chance').textContent = uni.admission_chance;
+            document.getElementById('detail-progress').style.width = uni.admission_chance;
+
+            switchView('detail');
+            BackButton.show();
+        }
+
+        function showReviews() {
+            const uni = universities.find(u => u.id === currentUniId);
+            if (!uni) return;
+
+            document.getElementById('reviews-uni-name').textContent = `Отзывы: ${uni.name}`;
+            document.getElementById('text-pros').textContent = uni.reviews.pros;
+            document.getElementById('text-cons').textContent = uni.reviews.cons;
+
+            switchView('reviews');
+        }
+
+        function switchView(viewName) {
+            viewList.classList.remove('active');
+            viewDetail.classList.remove('active');
+            viewReviews.classList.remove('active');
+
+            if (viewName === 'list') {
+                viewList.classList.add('active');
+                BackButton.hide();
+            } else if (viewName === 'detail') {
+                viewDetail.classList.add('active');
+            } else if (viewName === 'reviews') {
+                viewReviews.classList.add('active');
+            }
+        }
+
+        // --- Event Listeners ---
+        document.getElementById('btn-show-reviews').addEventListener('click', showReviews);
+        document.getElementById('btn-back-to-detail').addEventListener('click', () => switchView('detail'));
+
+        // Native Telegram Back Button
+        function setupBackButton() {
+            BackButton.onClick(() => {
+                if (viewReviews.classList.contains('active')) {
+                    switchView('detail');
+                } else if (viewDetail.classList.contains('active')) {
+                    switchView('list');
+                    BackButton.hide();
+                }
+            });
+        }
+
+        // Start App
+        init();
+    </script>
+</body>
+</html>
