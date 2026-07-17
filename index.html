@@ -146,14 +146,20 @@
 
         const SERVER_URL = "https://darkroom-disparate-passover.ngrok-free.dev"; // Твой ngrok URL
 
-        async function loadData() {
+                async function loadData() {
             if (!sessionId) {
                 document.getElementById('content').innerHTML = '<p class="subtitle">Ошибка: ID сессии не найден.</p>';
                 return;
             }
 
             try {
-                const response = await fetch(`${SERVER_URL}/api/get-session/${sessionId}`);
+                // ДОБАВЛЕН ЗАГОЛОВОК ДЛЯ ОБХОДА NGROK
+                const response = await fetch(`${SERVER_URL}/api/get-session/${sessionId}`, {
+                    headers: {
+                        "ngrok-skip-browser-warning": "true"
+                    }
+                });
+                
                 if (!response.ok) throw new Error('Session not found');
                 
                 const data = await response.json();
