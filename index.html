@@ -85,7 +85,7 @@
         }
 
         function getChanceClass(chance) {
-            const c = chance.toLowerCase();
+            const c = (chance || '').toLowerCase();
             if (c.includes('высок')) return 'chance-high';
             if (c.includes('сред')) return 'chance-medium';
             return 'chance-low';
@@ -104,18 +104,23 @@
             `;
 
             sessionData.universities.forEach((uni, index) => {
-                const chanceText = `Шанс: ${uni.admission_chance || 'Неизвестно'}`;
-                const chanceClass = getChanceClass(uni.admission_chance || '');
+                const chanceText = uni.chance_of_admission || 'Неизвестно';
+                const chanceClass = getChanceClass(chanceText);
                 const dorm = uni.dormitory_available ? '🏠 Общежитие есть' : '🚫 Нет общежития';
+                
+                // Скрываем цену, если выбран только бюджет
+                const priceBlock = sessionData.tuition === 'Только бюджет' 
+                    ? '' 
+                    : `💳 ${formatPrice(uni.paid_tuition_price)} | `;
                 
                 html += `
                     <div class="card" onclick="showDetail(${index})">
                         <div class="card-header">
                             <div class="uni-name">${uni.name}</div>
-                            <div class="chance-badge ${chanceClass}">${uni.admission_chance}</div>
+                            <div class="chance-badge ${chanceClass}">${chanceText}</div>
                         </div>
-                        <div class="uni-desc">${uni.description}</div>
-                        <div class="meta-item">💳 ${formatPrice(uni.paid_tuition_price)} | ${dorm}</div>
+                        <div class="uni-desc">${uni.specialty_name || 'Специальность не указана'}</div>
+                        <div class="meta-item">${priceBlock}${dorm}</div>
                     </div>
                 `;
             });
@@ -125,33 +130,39 @@
         function showDetail(index) {
             const uni = sessionData.universities[index];
             const container = document.getElementById('content');
-            const chanceClass = getChanceClass(uni.admission_chance || '');
+            const chanceClass = getChanceClass(uni.chance_of_admission || '');
             const dorm = uni.dormitory_available ? '🏠 Общежитие предоставляется' : '🚫 Общежития нет';
+
+            // Скрываем цену, если выбран только бюджет
+            const priceHtml = sessionData.tuition === 'Только бюджет' 
+                ? '<p>💳 Обучение: Только бюджет</p>' 
+                : `<p>💳 Платное обучение: ${formatPrice(uni.paid_tuition_price)}</p>`;
 
             container.innerHTML = `
                 <button class="btn btn-secondary back-btn" onclick="renderList()">← Назад к списку</button>
                 <h1>${uni.name}</h1>
-                <div class="chance-badge ${chanceClass}" style="display:inline-block; margin-bottom: 20px;">Шанс на поступление: ${uni.admission_chance}</div>
+                <div class="chance-badge ${chanceClass}" style="display:inline-block; margin-bottom: 20px;">Шанс на поступление: ${uni.chance_of_admission}</div>
                 
                 <div class="detail-block">
                     <h3>📖 Описание вуза</h3>
-                    <div class="uni-desc">${uni.description}</div>
+                    <div class="uni-desc">${uni.uni_description || 'Описание не предоставлено.'}</div>
                 </div>
 
                 <div class="detail-block">
-                    <h3>🎓 Описание специальности</h3>
-                    <div class="uni-desc">${uni.specialty_description || 'Описание не предоставлено.'}</div>
+                    <h3>🎓 Специальность</h3>
+                    <div class="uni-desc" style="font-weight: bold; margin-bottom: 8px;">${uni.specialty_name || 'Не указана'}</div>
+                    <div class="uni-desc">${uni.specialty_description || 'Описание специальности не предоставлено.'}</div>
                 </div>
 
                 <div class="detail-block">
                     <h3>💡 Почему такой шанс?</h3>
-                    <div class="uni-desc">${uni.explanation}</div>
+                    <div class="uni-desc">${uni.explanation || 'Нет данных'}</div>
                 </div>
 
                 <div class="detail-block">
                     <h3>💰 Стоимость и инфраструктура</h3>
                     <div class="meta-item" style="font-size: 14px; color: var(--text-color);">
-                        <p>💳 Платное обучение: ${formatPrice(uni.paid_tuition_price)}</p>
+                        ${priceHtml}
                         <p>${dorm}</p>
                     </div>
                 </div>
@@ -160,15 +171,17 @@
                     <h3>📝 Отзывы студентов</h3>
                     <div id="loader-small" class="loader-small">⏳ ИИ читает отзывы...</div>
                     <div id="review-box" class="review-box"></div>
-                    <button class="btn" onclick="getReviews('${uni.name}', '${uni.specialty_description}')">🤖 ИИ: Суммаризовать отзывы</button>
+                    <button class="btn" onclick="getReviews(${index})">🤖 ИИ: Суммаризовать отзывы</button>
                 </div>
 
-                <a href="${uni.uni_link}" target="_blank" class="btn" style="background-color: #0088cc;">🌐 Официальный сайт</a>
+                <a href="${uni.official_website_link}" target="_blank" class="btn" style="background-color: #0088cc;">🌐 Официальный сайт</a>
+                <a href="${uni.vuzopedia_link}" target="_blank" class="btn btn-secondary">🔍 Найти на Vuzopedia</a>
                 <a href="${uni.postupi_online_link}" target="_blank" class="btn btn-secondary">🔍 Найти на Поступи.онлайн</a>
             `;
         }
 
-        async function getReviews(uniName, specialty) {
+        async function getReviews(index) {
+            const uni = sessionData.universities[index];
             const loader = document.getElementById('loader-small');
             const reviewBox = document.getElementById('review-box');
             const btn = event.target;
@@ -184,7 +197,7 @@
                         'Content-Type': 'application/json',
                         "ngrok-skip-browser-warning": "true"
                     },
-                    body: JSON.stringify({ university_name: uniName, specialty: specialty })
+                    body: JSON.stringify({ university_name: uni.name, specialty_name: uni.specialty_name || 'Не указана' })
                 });
                 const data = await response.json();
                 reviewBox.innerText = data.summary;
@@ -194,7 +207,7 @@
                 reviewBox.style.display = 'block';
             } finally {
                 loader.style.display = 'none';
-                btn.style.display = 'block'; // Оставляем кнопку, чтобы можно было перегенерировать
+                btn.style.display = 'block';
             }
         }
 
