@@ -42,8 +42,8 @@
         .chance-low { background-color: rgba(244, 67, 54, 0.2); color: var(--red); }
         .uni-desc { font-size: 14px; line-height: 1.4; opacity: 0.9; margin-bottom: 12px; }
         .meta-item { font-size: 12px; color: gray; margin-top: 8px; }
-        .btn { display: block; width: 100%; text-align: center; margin-top: 12px; padding: 12px; background-color: var(--accent-color); color: #fff; text-decoration: none; border-radius: 8px; font-weight: 500; font-size: 14px; border: none; cursor: pointer; }
-        .btn-secondary { background-color: transparent; border: 1px solid var(--accent-color); color: var(--accent-color); }
+        .btn { display: block; width: 100%; text-align: center; margin-top: 12px; padding: 12px; background-color: var(--accent-color); color: #fff !important; text-decoration: none; border-radius: 8px; font-weight: 500; font-size: 14px; border: none; cursor: pointer; }
+        .btn-secondary { background-color: transparent; border: 1px solid var(--accent-color); color: var(--accent-color) !important; }
         .back-btn { margin-bottom: 20px; }
         .detail-block { margin-bottom: 20px; }
         .detail-block h3 { margin-bottom: 8px; font-size: 16px; }
@@ -96,7 +96,6 @@
             return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + ' ₽/год';
         }
 
-        // Генерация HTML для шансов поступления
         function getChanceBadges(uni, isDetailView = false) {
             const budgetText = `Шанс на поступление (бюджет): ${uni.chance_budget || 'Неизвестно'}`;
             const paidText = `Шанс на поступление (платное): ${uni.chance_paid || 'Неизвестно'}`;
@@ -106,7 +105,6 @@
             } else if (sessionData.tuition === 'Платное') {
                 return `<div class="chance-badge ${getChanceClass(uni.chance_paid)}">${isDetailView ? paidText : uni.chance_paid || 'Неизвестно'}</div>`;
             } else {
-                // Любое
                 if (isDetailView) {
                     return `
                         <div class="chance-badge ${getChanceClass(uni.chance_budget)}">${budgetText}</div>
@@ -130,10 +128,9 @@
             `;
 
             sessionData.universities.forEach((uni, index) => {
-                const dorm = uni.dormitory_available ? '🏠 Общежитие есть' : '🚫 Нет общежития';
                 const priceBlock = sessionData.tuition === 'Только бюджет' 
                     ? '' 
-                    : `💳 ${formatPrice(uni.paid_tuition_price)} | `;
+                    : `💳 ${formatPrice(uni.paid_tuition_price)}`;
                 
                 html += `
                     <div class="card" onclick="showDetail(${index})">
@@ -142,7 +139,7 @@
                             <div class="chance-badges">${getChanceBadges(uni, false)}</div>
                         </div>
                         <div class="uni-desc">${uni.specialty_name || 'Специальность не указана'}</div>
-                        <div class="meta-item">${priceBlock}${dorm}</div>
+                        <div class="meta-item">${priceBlock}</div>
                     </div>
                 `;
             });
@@ -152,11 +149,16 @@
         function showDetail(index) {
             const uni = sessionData.universities[index];
             const container = document.getElementById('content');
-            const dorm = uni.dormitory_available ? '🏠 Общежитие предоставляется' : '🚫 Общежития нет';
 
             const priceHtml = sessionData.tuition === 'Только бюджет' 
                 ? '<p>💳 Обучение: Только бюджет</p>' 
                 : `<p>💳 Платное обучение: ${formatPrice(uni.paid_tuition_price)}</p>`;
+
+            // Логика общежития: если пользователь не просил общежитие - не упоминаем его
+            let dormHtml = '';
+            if (sessionData.dorm === true) {
+                dormHtml = `<p>${uni.dormitory_available ? '🏠 Общежитие предоставляется' : '🚫 Общежития нет'}</p>`;
+            }
 
             container.innerHTML = `
                 <button class="btn btn-secondary back-btn" onclick="renderList()">← Назад к списку</button>
@@ -185,7 +187,7 @@
                     <h3>💰 Стоимость и инфраструктура</h3>
                     <div class="meta-item" style="font-size: 14px; color: var(--text-color);">
                         ${priceHtml}
-                        <p>${dorm}</p>
+                        ${dormHtml}
                     </div>
                 </div>
 
@@ -196,9 +198,7 @@
                     <button class="btn" onclick="getReviews(${index})">🤖 ИИ: Суммаризовать отзывы</button>
                 </div>
 
-                <button class="btn" style="background-color: #0088cc;" onclick="tg.openLink('${uni.official_website_link}')">🌐 Официальный сайт</button>
-                <button class="btn btn-secondary" onclick="tg.openLink('${uni.vuzopedia_link}')">🔍 Найти на Vuzopedia</button>
-                <button class="btn btn-secondary" onclick="tg.openLink('${uni.postupi_online_link}')">🔍 Найти на Поступи.онлайн</button>
+                <a href="${uni.official_website_link}" target="_blank" class="btn" style="background-color: #0088cc;">🌐 Официальный сайт</a>
             `;
         }
 
