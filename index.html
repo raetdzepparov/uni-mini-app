@@ -33,8 +33,9 @@
         .loader { display: flex; justify-content: center; align-items: center; height: 50vh; font-size: 18px; color: var(--accent-color); }
         .card { background-color: var(--card-bg); border-radius: 12px; padding: 16px; margin-bottom: 16px; cursor: pointer; transition: transform 0.1s; }
         .card:active { transform: scale(0.98); }
-        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
-        .uni-name { font-size: 18px; font-weight: 600; flex: 1; margin-right: 8px; }
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; gap: 8px; }
+        .uni-name { font-size: 18px; font-weight: 600; flex: 1; }
+        .chance-badges { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
         .chance-badge { font-size: 12px; padding: 4px 8px; border-radius: 12px; font-weight: bold; white-space: nowrap; }
         .chance-high { background-color: rgba(76, 175, 80, 0.2); color: var(--green); }
         .chance-medium { background-color: rgba(255, 152, 0, 0.2); color: var(--orange); }
@@ -95,6 +96,31 @@
             return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + ' ₽/год';
         }
 
+        // Генерация HTML для шансов поступления
+        function getChanceBadges(uni, isDetailView = false) {
+            const budgetText = `Шанс на поступление (бюджет): ${uni.chance_budget || 'Неизвестно'}`;
+            const paidText = `Шанс на поступление (платное): ${uni.chance_paid || 'Неизвестно'}`;
+            
+            if (sessionData.tuition === 'Только бюджет') {
+                return `<div class="chance-badge ${getChanceClass(uni.chance_budget)}">${isDetailView ? budgetText : uni.chance_budget || 'Неизвестно'}</div>`;
+            } else if (sessionData.tuition === 'Платное') {
+                return `<div class="chance-badge ${getChanceClass(uni.chance_paid)}">${isDetailView ? paidText : uni.chance_paid || 'Неизвестно'}</div>`;
+            } else {
+                // Любое
+                if (isDetailView) {
+                    return `
+                        <div class="chance-badge ${getChanceClass(uni.chance_budget)}">${budgetText}</div>
+                        <div class="chance-badge ${getChanceClass(uni.chance_paid)}">${paidText}</div>
+                    `;
+                } else {
+                    return `
+                        <div class="chance-badge ${getChanceClass(uni.chance_budget)}">Бюджет: ${uni.chance_budget || 'Неизвестно'}</div>
+                        <div class="chance-badge ${getChanceClass(uni.chance_paid)}">Платное: ${uni.chance_paid || 'Неизвестно'}</div>
+                    `;
+                }
+            }
+        }
+
         function renderList() {
             const container = document.getElementById('content');
             let html = `
@@ -104,11 +130,7 @@
             `;
 
             sessionData.universities.forEach((uni, index) => {
-                const chanceText = uni.chance_of_admission || 'Неизвестно';
-                const chanceClass = getChanceClass(chanceText);
                 const dorm = uni.dormitory_available ? '🏠 Общежитие есть' : '🚫 Нет общежития';
-                
-                // Скрываем цену, если выбран только бюджет
                 const priceBlock = sessionData.tuition === 'Только бюджет' 
                     ? '' 
                     : `💳 ${formatPrice(uni.paid_tuition_price)} | `;
@@ -117,7 +139,7 @@
                     <div class="card" onclick="showDetail(${index})">
                         <div class="card-header">
                             <div class="uni-name">${uni.name}</div>
-                            <div class="chance-badge ${chanceClass}">${chanceText}</div>
+                            <div class="chance-badges">${getChanceBadges(uni, false)}</div>
                         </div>
                         <div class="uni-desc">${uni.specialty_name || 'Специальность не указана'}</div>
                         <div class="meta-item">${priceBlock}${dorm}</div>
@@ -130,10 +152,8 @@
         function showDetail(index) {
             const uni = sessionData.universities[index];
             const container = document.getElementById('content');
-            const chanceClass = getChanceClass(uni.chance_of_admission || '');
             const dorm = uni.dormitory_available ? '🏠 Общежитие предоставляется' : '🚫 Общежития нет';
 
-            // Скрываем цену, если выбран только бюджет
             const priceHtml = sessionData.tuition === 'Только бюджет' 
                 ? '<p>💳 Обучение: Только бюджет</p>' 
                 : `<p>💳 Платное обучение: ${formatPrice(uni.paid_tuition_price)}</p>`;
@@ -141,7 +161,9 @@
             container.innerHTML = `
                 <button class="btn btn-secondary back-btn" onclick="renderList()">← Назад к списку</button>
                 <h1>${uni.name}</h1>
-                <div class="chance-badge ${chanceClass}" style="display:inline-block; margin-bottom: 20px;">Шанс на поступление: ${uni.chance_of_admission}</div>
+                <div class="chance-badges" style="align-items: flex-start; margin-bottom: 20px;">
+                    ${getChanceBadges(uni, true)}
+                </div>
                 
                 <div class="detail-block">
                     <h3>📖 Описание вуза</h3>
@@ -174,9 +196,9 @@
                     <button class="btn" onclick="getReviews(${index})">🤖 ИИ: Суммаризовать отзывы</button>
                 </div>
 
-                <a href="${uni.official_website_link}" target="_blank" class="btn" style="background-color: #0088cc;">🌐 Официальный сайт</a>
-                <a href="${uni.vuzopedia_link}" target="_blank" class="btn btn-secondary">🔍 Найти на Vuzopedia</a>
-                <a href="${uni.postupi_online_link}" target="_blank" class="btn btn-secondary">🔍 Найти на Поступи.онлайн</a>
+                <button class="btn" style="background-color: #0088cc;" onclick="tg.openLink('${uni.official_website_link}')">🌐 Официальный сайт</button>
+                <button class="btn btn-secondary" onclick="tg.openLink('${uni.vuzopedia_link}')">🔍 Найти на Vuzopedia</button>
+                <button class="btn btn-secondary" onclick="tg.openLink('${uni.postupi_online_link}')">🔍 Найти на Поступи.онлайн</button>
             `;
         }
 
