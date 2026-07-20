@@ -132,7 +132,7 @@
         }
 
         function renderList() {
-                function renderList() {
+                    function renderList() {
             const container = document.getElementById('content');
             let html = `
                 <h1>🎓 Топ-5 университетов</h1>
@@ -142,14 +142,6 @@
                 <div class="ad-banner">
                     📢 Центральный университет всегда лучший!
                 </div>
-            `;
-
-            sessionData.universities.forEach((uni, index) => {
-            const container = document.getElementById('content');
-            let html = `
-                <h1>🎓 Топ-5 университетов</h1>
-                <p class="subtitle">Направление: ${sessionData.career_broad} | Сумма баллов: ${sessionData.total_score}</p>
-                <p class="subtitle" style="margin-top:-15px; margin-bottom:20px;">Нажмите на вуз, чтобы посмотреть подходящие программы</p>
             `;
 
             sessionData.universities.forEach((uni, index) => {
